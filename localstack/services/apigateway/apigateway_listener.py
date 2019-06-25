@@ -143,11 +143,21 @@ class ProxyListenerApiGateway(ProxyListener):
                     LOGGER.warning(msg)
                     return make_error(msg, 404)
 
-            elif integration['type'] == 'HTTP':
+            elif integration['type'] == 'HTTP' or integration['type'] == 'HTTP_PROXY':
                 function = getattr(requests, method.lower())
+
+                try:
+                    path_params = extract_path_params(path=relative_path, extracted_path=extracted_path)
+                except Exception:
+                    path_params = {}
+
+                integration_uri = integration['uri']
+                for key, value in path_params.items():
+                    integration_uri = integration_uri.replace('{%s}' % (key.replace("+", "")), value)
+
                 if isinstance(data, dict):
                     data = json.dumps(data)
-                result = function(integration['uri'], data=data, headers=headers)
+                result = function(integration_uri, data=data, headers=headers)
                 return result
 
             else:
